@@ -25,9 +25,9 @@ print(uuid_pattern.fullmatch("01234567-89ab-cdef-0123-456789abcdef"))
 With `rex`:
 
 ```python
-from rex import DIGIT, cls, seq
+from rex import DIGIT, char_cls, seq
 
-hexdigit = DIGIT | cls("a-fA-F")
+hexdigit = DIGIT | char_cls("a-fA-F")
 uuid_pattern = seq(
     hexdigit[8], "-", hexdigit[4], "-", hexdigit[4], "-", hexdigit[4], "-", hexdigit[12]
 )
