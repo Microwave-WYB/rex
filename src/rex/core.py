@@ -187,7 +187,8 @@ class Pattern:
         >>> "a" + Pattern("b")
         Pattern('ab')
         """
-        return Pattern(other).then(self)
+        other = lit(other) if isinstance(other, str) else other
+        return other.then(self)
 
     def __or__(self, other: "str | Pattern") -> "Pattern":
         """
