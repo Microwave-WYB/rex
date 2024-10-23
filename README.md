@@ -1,5 +1,9 @@
 # REX: Regular Expression Library for Humans
 
+> [!WARNING]
+>
+> This tool is in a very early stage and under heavy developments and should not be used in production code.
+
 ## Examples:
 
 Let's see a comparison between the standard `re` module and `rex`:
