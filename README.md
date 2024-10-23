@@ -109,7 +109,7 @@ You can also use `__getitem__` for repeating patterns:
 pattern[3]  # r"(?:hello){3}"
 
 # "hello" repeated 3 to 5 times
-pattern[3, 5]  # r"(?:hello){3,5}"
+pattern[3:5]  # r"(?:hello){3,5}"
 
 # "hello" repeated 0-3 times
 pattern[:3]  # r"(?:hello){,3}"
