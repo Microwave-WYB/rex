@@ -1,14 +1,14 @@
-from rex.core import DIGIT, END, START, WORD, capture_groups, char_cls, lit
+from rex.core import DIGIT, END, START, WORD, capture_groups, char_cls, opt
 
 http_url_pattern = capture_groups(
-    scheme=START + lit("http") + lit("s").optional() + lit("://"),
-    domain_name=((WORD | DIGIT | lit("-")).one_or_more() + lit(".")).one_or_more()
-    + WORD.repeat(2, 63),
-    port=(lit(":") + DIGIT.repeat(1, 5)).optional(),
-    path=(lit("/") + char_cls("?#", negate=True).zero_or_more()).optional(),
-    query=(lit("?") + (WORD | DIGIT | char_cls("=&%+.-_")).one_or_more()).optional(),
-    fragment=(lit("#") + (WORD | DIGIT | char_cls("=&%+.-_")).one_or_more()).optional() + END,
+    scheme="http" + opt("s") + "://",
+    domain_name=((WORD | DIGIT | "-")[1:] + ".")[1:] + WORD[2:63],
+    port=opt(":" + DIGIT[1:5]),
+    path=opt(("/" + char_cls("?#", negate=True)[:])),
+    query=opt("?" + (WORD | DIGIT | char_cls("=&%+.-_"))[1:]),
+    fragment=opt("#" + (WORD | DIGIT | char_cls("=&%+.-_"))[1:]),
 )
+http_url_pattern = START + http_url_pattern + END
 print(http_url_pattern)
 
 
