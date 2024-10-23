@@ -79,9 +79,18 @@ class Pattern:
         >>> Pattern("a").repeat(2)
         Pattern('(?:a){2}')
         """
-        if m is None:
-            return Pattern(f"{self.precedence()}{{{n}}}")
-        return Pattern(f"{self.precedence()}{{{n},{m}}}")
+        match n, m:
+            case 0, int(m) if m > 0:
+                return Pattern(f"{self.precedence()}{{,{m}}}")
+
+            case int(n), None:
+                return Pattern(f"{self.precedence()}{{{n}}}")
+
+            case int(n), int(m) if m > n:
+                return Pattern(f"{self.precedence()}{{{n},{m}}}")
+
+            case _:
+                raise ValueError("Invalid repetition range")
 
     def capture(self, name: str | None = None) -> "Pattern":
         """
@@ -110,27 +119,27 @@ class Pattern:
             name is not None,
         ):
             # Already in capturing group, no name provided
-            case (True, False, False):
+            case True, False, False:
                 return Pattern(pattern)
 
             # Already in capturing group, convert to named
-            case (True, False, True):
+            case True, False, True:
                 return Pattern(f"(?P<{name}>{pattern[1:-1]})")
 
             # In non-capturing group, convert to regular capture
-            case (True, True, False):
+            case True, True, False:
                 return Pattern(f"({pattern[3:-1]})")
 
             # In non-capturing group, convert to named capture
-            case (True, True, True):
+            case True, True, True:
                 return Pattern(f"(?P<{name}>{pattern[3:-1]})")
 
             # Not in any group, add regular capture
-            case (False, _, False):
+            case False, _, False:
                 return Pattern(f"({pattern})")
 
             # Not in any group, add named capture
-            case (False, _, True):
+            case False, _, True:
                 return Pattern(f"(?P<{name}>{pattern})")
 
     def precedence(self) -> "Pattern":
@@ -156,40 +165,80 @@ class Pattern:
         """
         Union two patterns.
         >>> Pattern("a").or_(Pattern("b"))
-        Pattern('(?:a)|(?:b)')
+        Pattern('((?:a)|(?:b))')
         """
-        return Pattern(f"{self.precedence()}|{other.precedence()}")
+        return Pattern(f"{self.precedence()}|{other.precedence()}").precedence()
 
     def compile(self) -> re.Pattern:
         """Compile the pattern to a re.Pattern object."""
         return re.compile(str(self))
 
-    def __add__(self, other: "Pattern") -> "Pattern":
+    def __add__(self, other: "str | Pattern") -> "Pattern":
         """
         >>> Pattern("a") + Pattern("b")
         Pattern('ab')
         """
-        return self.then(other)
+        return self.then(Pattern(other))
+
+    def __radd__(self, other: "str | Pattern") -> "Pattern":
+        """
+        >>> "a" + Pattern("b")
+        Pattern('ab')
+        """
+        return Pattern(other).then(self)
 
     def __or__(self, other: "Pattern") -> "Pattern":
         """
         >>> Pattern("a") | Pattern("b")
-        Pattern('(?:a)|(?:b)')
+        Pattern('((?:a)|(?:b))')
         """
         return self.or_(other)
 
-    def __mul__(self, n: int | tuple[int, int]) -> "Pattern":
+    def __ror__(self, other: "Pattern") -> "Pattern":
         """
-        >>> Pattern("a") * 2
-        Pattern('(?:a){2}')
+        >>> "a" | Pattern("b")
+        Pattern('((?:a)|(?:b))')
         """
-        if isinstance(n, int):
-            return self.repeat(n)
-        if len(n) != 2:
-            raise ValueError("Expected a single integer or a tuple of two integers.")
-        if not all(isinstance(i, int) for i in n):
-            raise ValueError("Expected integers.")
-        return self.repeat(*n)
+        return Pattern(other).or_(self)
+
+    def __getitem__(self, key: int | slice) -> "Pattern":
+        """
+        Support slice-like syntax for pattern repetition.
+        >>> Pattern(r"\\d")[4]  # exactly 4 digits
+        Pattern('(?:\\\\d){4}')
+        >>> Pattern(r"\\d")[2:4]  # 2-4 digits
+        Pattern('(?:\\\\d){2,4}')
+        >>> Pattern(r"\\d")[2:]  # 2 or more digits
+        Pattern('(?:\\\\d){2,}')
+        >>> Pattern(r"\\d")[:4]  # 0-4 digits
+        Pattern('(?:\\\\d){0,4}')
+        >>> Pattern(r"\\d")[:]  # 0 or more digits
+        Pattern('(?:\\\\d)*')
+        """
+        if isinstance(key, int):
+            return self.repeat(key)
+
+        if isinstance(key, slice):
+            match (key.start, key.stop):
+                case None, None:
+                    return self.zero_or_more()
+
+                case 1, None:
+                    return self.one_or_more()
+
+                case int(start), None:
+                    return self.n_or_more(start)
+
+                case None, 1:
+                    return self.optional()
+
+                case None, int(stop):
+                    return self.repeat(0, stop)
+
+                case int(start), int(stop):
+                    return self.repeat(start, stop)
+
+        raise TypeError(f"Pattern indices must be integers or slices, not {type(key).__name__}")
 
 
 def lit(s: str) -> Pattern:
@@ -197,25 +246,27 @@ def lit(s: str) -> Pattern:
     Create a literal pattern, escaping special regex characters.
     >>> lit("a")
     Pattern('a')
+    >>> lit("a.b")
+    Pattern('a\\\\.b')
     """
     return Pattern(re.escape(s))
 
 
-def char_class(*args: str | Pattern, negate: bool = False) -> Pattern:
+def char_cls(*args: str | Pattern, negate: bool = False) -> Pattern:
     """
     Create a character set from a string.
-    >>> char_class("a", "b", "c")
+    >>> cls("a", "b", "c")
     Pattern('[abc]')
-    >>> char_class("abc", "def", negate=True)
+    >>> cls("abc", "def", negate=True)
     Pattern('[^abcdef]')
     """
     return Pattern(("[^" if negate else "[") + "".join(str(arg) for arg in args) + "]")
 
 
-def concat(*args: str | Pattern) -> Pattern:
+def seq(*args: str | Pattern) -> Pattern:
     """
-    Concatenate multiple patterns. Strings are escaped and converted to literal patterns.
-    >>> concat("a", "b", "c")
+    Create a sequence of patterns.
+    >>> seq("a", "b", "c")
     Pattern('abc')
     """
     pattern = Pattern("")
@@ -226,8 +277,21 @@ def concat(*args: str | Pattern) -> Pattern:
     return pattern
 
 
-def create_parser(**kwargs: Pattern) -> Pattern:
-    """Create a parser pattern from a dictionary of patterns."""
+def opt(pattern: str | Pattern) -> Pattern:
+    """
+    Make a pattern optional.
+    >>> optional(lit("a"))
+    Pattern('(?:a)?')
+    """
+    return Pattern(pattern).optional()
+
+
+def capture_groups(**kwargs: Pattern) -> Pattern:
+    """
+    Create a pattern with named capture groups.
+    >>> capture_groups(word=WORD, digit=DIGIT)
+    Pattern('(?P<word>\\\\w)(?P<digit>\\\\d)')
+    """
     pattern = Pattern("")
     for key, value in kwargs.items():
         pattern += value.capture(key)
@@ -235,6 +299,7 @@ def create_parser(**kwargs: Pattern) -> Pattern:
 
 
 # Commonly used patterns
+ANY: Final[Pattern] = Pattern(".")
 WORD: Final[Pattern] = Pattern(r"\w")
 WORD_BOUNDARY: Final[Pattern] = Pattern(r"\b")
 NON_WORD_BOUNDARY: Final[Pattern] = Pattern(r"\B")

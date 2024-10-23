@@ -10,10 +10,11 @@ from rex.core import (
     WORD_BOUNDARY,
     WS,
     Pattern,
-    char_class,
-    concat,
-    create_parser,
+    capture_groups,
+    char_cls,
     lit,
+    opt,
+    seq,
 )
 
 __all__ = [
@@ -28,8 +29,9 @@ __all__ = [
     "WORD_BOUNDARY",
     "WS",
     "Pattern",
-    "char_class",
-    "concat",
-    "create_parser",
+    "capture_groups",
+    "char_cls",
     "lit",
+    "opt",
+    "seq",
 ]
