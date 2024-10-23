@@ -153,20 +153,22 @@ class Pattern:
             return Pattern(f"(?:{self})")
         return Pattern(self)
 
-    def then(self, /, other: "Pattern") -> "Pattern":
+    def then(self, /, other: "str | Pattern") -> "Pattern":
         """
         Concatenate two patterns.
         >>> Pattern("a").then(Pattern("b"))
         Pattern('ab')
         """
+        other = lit(other) if isinstance(other, str) else other
         return Pattern(f"{self}{other}")
 
-    def or_(self, /, other: "Pattern") -> "Pattern":
+    def or_(self, /, other: "str | Pattern") -> "Pattern":
         """
         Union two patterns.
         >>> Pattern("a").or_(Pattern("b"))
         Pattern('((?:a)|(?:b))')
         """
+        other = lit(other) if isinstance(other, str) else other
         return Pattern(f"{self.precedence()}|{other.precedence()}").precedence()
 
     def compile(self) -> re.Pattern:
@@ -178,7 +180,7 @@ class Pattern:
         >>> Pattern("a") + Pattern("b")
         Pattern('ab')
         """
-        return self.then(Pattern(other))
+        return self.then(other)
 
     def __radd__(self, other: "str | Pattern") -> "Pattern":
         """
@@ -187,19 +189,20 @@ class Pattern:
         """
         return Pattern(other).then(self)
 
-    def __or__(self, other: "Pattern") -> "Pattern":
+    def __or__(self, other: "str | Pattern") -> "Pattern":
         """
         >>> Pattern("a") | Pattern("b")
         Pattern('((?:a)|(?:b))')
         """
         return self.or_(other)
 
-    def __ror__(self, other: "Pattern") -> "Pattern":
+    def __ror__(self, other: "str | Pattern") -> "Pattern":
         """
         >>> "a" | Pattern("b")
         Pattern('((?:a)|(?:b))')
         """
-        return Pattern(other).or_(self)
+        other = lit(other) if isinstance(other, str) else other
+        return other.or_(self)
 
     def __getitem__(self, key: int | slice) -> "Pattern":
         """
