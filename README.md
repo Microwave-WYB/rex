@@ -130,15 +130,13 @@ pattern[:1]  # r"(?:hello)?"
 ### Predefined Patterns:
 
 ```python
-from rex import DIGIT, END, START, WS, WORD
+from rex import DIGIT, END, START, WORD
 
 ten_digits = DIGIT[10]
 
 full_string_ten_digits = START + ten_digits + END
 
 ten_words = WORD[10]
-
-words_with_spaces = (WORD | WS)[10]
 ```
 
 ### Factory Functions:
