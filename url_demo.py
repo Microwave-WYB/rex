@@ -1,13 +1,13 @@
-from rex.core import DIGIT, END, START, WORD, char_class, create_parser, lit
+from rex.core import DIGIT, END, START, WORD, capture_groups, char_cls, lit
 
-http_url_pattern = create_parser(
+http_url_pattern = capture_groups(
     scheme=START + lit("http") + lit("s").optional() + lit("://"),
     domain_name=((WORD | DIGIT | lit("-")).one_or_more() + lit(".")).one_or_more()
     + WORD.repeat(2, 63),
     port=(lit(":") + DIGIT.repeat(1, 5)).optional(),
-    path=(lit("/") + char_class("?#", negate=True).zero_or_more()).optional(),
-    query=(lit("?") + (WORD | DIGIT | char_class("=&%+.-_")).one_or_more()).optional(),
-    fragment=(lit("#") + (WORD | DIGIT | char_class("=&%+.-_")).one_or_more()).optional() + END,
+    path=(lit("/") + char_cls("?#", negate=True).zero_or_more()).optional(),
+    query=(lit("?") + (WORD | DIGIT | char_cls("=&%+.-_")).one_or_more()).optional(),
+    fragment=(lit("#") + (WORD | DIGIT | char_cls("=&%+.-_")).one_or_more()).optional() + END,
 )
 print(http_url_pattern)
 
