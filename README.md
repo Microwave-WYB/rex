@@ -142,7 +142,7 @@ words_with_spaces = (WORD | WS)[10]
 You can use a set of factory functions to create patterns:
 
 ```python
-from rex import lit, seq, opt, char_cls, capture_group
+from rex import lit, seq, opt, char_cls, capture_groups
 
 # literal "hello"
 lit("hello")
@@ -161,7 +161,7 @@ lit("hello").optional()
 char_cls("0-9a-fA-F")
 
 # capture groups
-greeting_pattern = capture_group(greet="Hello", name=WORLD.one_or_more(), end="!")
+greeting_pattern = capture_groups(greet="Hello", name=WORLD.one_or_more(), end="!")
 greeting_pattern.match("Hello, world!").groupdict()
 # {'greet': 'Hello', 'name': 'world', 'end': '!'}
 ```
