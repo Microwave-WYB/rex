@@ -1,6 +1,7 @@
 from rex.core import (
     ALPHANUMS,
     ALPHAS,
+    ANY,
     DIGIT,
     END,
     LOWER,
@@ -20,6 +21,7 @@ from rex.core import (
 __all__ = [
     "ALPHANUMS",
     "ALPHAS",
+    "ANY",
     "DIGIT",
     "END",
     "LOWER",
